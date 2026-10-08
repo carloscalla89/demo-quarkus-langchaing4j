@@ -86,7 +86,7 @@ quarkus.langchain4j.pgvector.dimension=1536
   `rag.reindex-on-startup=false`.
 - **Alcance global:** el `RetrievalAugmentor` que registra
   `quarkus-langchain4j-easy-rag` se aplica a **todos** los AI Services por
-  defecto. Si un agente no debe usar RAG, desactívalo con
+  defecto. Si un agente/asistente no debe usar RAG, desactívalo con
   `retrievalAugmentor = RegisterAiService.NoRetrievalAugmentorSupplier.class`.
   Ver el detalle en
   [Guardrails](quarkus-guardrails.md#7-advertencia-los-guardrails-de-entrada-ven-el-mensaje-augmentado-por-rag).

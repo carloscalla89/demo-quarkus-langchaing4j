@@ -9,7 +9,7 @@ import dev.langchain4j.guardrail.InputGuardrailResult;
 import jakarta.enterprise.context.ApplicationScoped;
 
 /**
- * Guardrail de entrada del agente meteorológico. Valida que la pregunta no esté
+ * Guardrail de entrada del asistente meteorológico. Valida que la pregunta no esté
  * vacía, no sea excesivamente larga y trate sobre clima o ubicaciones. Es una
  * heurística por palabras clave (no invoca otro LLM) para mantener el coste bajo.
  *

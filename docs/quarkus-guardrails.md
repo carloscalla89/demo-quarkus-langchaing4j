@@ -122,20 +122,20 @@ La pregunta es demasiado larga (máximo 500 caracteres).
 
 **Causa:** el `quarkus-langchain4j-easy-rag` registra un `RetrievalAugmentor`
 **global**. El valor por defecto de `@RegisterAiService` es
-`retrievalAugmentor = BeanIfExistsRetrievalAugmentorSupplier`, así que el agente
+`retrievalAugmentor = BeanIfExistsRetrievalAugmentorSupplier`, así que el asistente
 meteorológico recibía chunks de la documentación de Quarkus. En
 `AiServiceMethodImplementationSupport`, el mensaje del usuario se reemplaza por
 `AugmentationResult.chatMessage()` **antes** de ejecutar
 `GuardrailsSupport.executeInputGuardrails(...)`.
 
-**Solución:** desactivar RAG en los agentes que no lo necesitan:
+**Solución:** desactivar RAG en los asistentes que no lo necesitan:
 
 ```java
 @ApplicationScoped
 @RegisterAiService(
         tools = WeatherTools.class,
         retrievalAugmentor = RegisterAiService.NoRetrievalAugmentorSupplier.class)
-public interface WeatherForecastAgent extends WeatherAssistant { /* ... */ }
+public interface WeatherForecastAssistant extends WeatherAssistant { /* ... */ }
 ```
 
 RAG se conserva solo donde aporta valor (por ejemplo `DocumentationAssistant`).
@@ -166,7 +166,7 @@ invoca la cadena con `@OutputGuardrailAccumulator` y una implementación de
 | Guardrail de salida | `WeatherOutputGuardrail` | Exige la atribución de Open-Meteo |
 | Mapper entrada | `InputGuardrailExceptionMapper` | `InputGuardrailException` → 400 |
 | Mapper salida | `OutputGuardrailExceptionMapper` | `OutputGuardrailException` → 502 |
-| Aplicación | `WeatherForecastAgent` | `@InputGuardrails` / `@OutputGuardrails` |
+| Aplicación | `WeatherForecastAssistant` | `@InputGuardrails` / `@OutputGuardrails` |
 
 Ejemplo del guardrail de entrada:
 
@@ -210,13 +210,13 @@ public class WeatherOutputGuardrail implements OutputGuardrail {
 
 ```bash
 # Pregunta fuera de dominio -> 400 (guardrail de entrada)
-curl -s -X POST http://localhost:8080/weather/agent \
+curl -s -X POST http://localhost:8080/weather/Assistant \
   -H "Content-Type: application/json" \
   -d '{"question":"escríbeme un poema"}'
 # {"answer":"Solo puedo responder preguntas relacionadas con el clima o ubicaciones."}
 
 # Respuesta válida -> 200
-curl -s -X POST http://localhost:8080/weather/agent \
+curl -s -X POST http://localhost:8080/weather/assistant \
   -H "Content-Type: application/json" \
   -d '{"question":"¿Qué tiempo hace en Lima?"}'
 ```

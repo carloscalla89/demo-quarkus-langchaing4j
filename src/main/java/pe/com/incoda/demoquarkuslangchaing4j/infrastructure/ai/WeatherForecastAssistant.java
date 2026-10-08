@@ -27,7 +27,7 @@ import pe.com.incoda.demoquarkuslangchaing4j.infrastructure.tools.WeatherTools;
  */
 @ApplicationScoped
 @RegisterAiService(tools = WeatherTools.class, retrievalAugmentor = RegisterAiService.NoRetrievalAugmentorSupplier.class)
-public interface WeatherForecastAgent extends WeatherAssistant {
+public interface WeatherForecastAssistant extends WeatherAssistant {
 
     /**
      * Responde una consulta meteorológica usando las tools disponibles.

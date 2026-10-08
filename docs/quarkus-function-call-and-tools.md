@@ -87,7 +87,7 @@ Hay dos formas:
 ```java
 // A nivel de AI Service (recomendado): aplica a todos los métodos
 @RegisterAiService(tools = WeatherTools.class)
-public interface WeatherForecastAgent extends WeatherAssistant { /* ... */ }
+public interface WeatherForecastAssistant extends WeatherAssistant { /* ... */ }
 
 // A nivel de método (alternativa)
 @ToolBox({WeatherTools.class, TravelTools.class})
@@ -110,7 +110,7 @@ Cada clase referenciada debe ser un bean CDI y declarar métodos `@Tool`.
 En este proyecto las tools devuelven modelos de dominio
 (`WeatherToolResult`, `GeoLocation`), que LangChain4j serializa a JSON. Ventaja:
 el mismo objeto se reutiliza para construir la respuesta REST estructurada (ver
-`WeatherAgentService`).
+`WeatherAssistantService`).
 
 > Cuida el tamaño del JSON: devolver el pronóstico completo de 7 días añade
 > tokens y ruido. Aquí las tools aceptan un parámetro `days` para recortarlo.
@@ -157,7 +157,7 @@ Y acotar la ventana:
 quarkus.langchain4j.chat-memory.memory-window.max-messages=10
 ```
 
-En esta app, `WeatherAgentService` usa el `sessionId` del request o genera un
+En esta app, `WeatherAssistantService` usa el `sessionId` del request o genera un
 `UUID`.
 
 ## 8. Manejo de errores
@@ -233,16 +233,15 @@ objeto real devuelto por la tool (útil para respuestas estructuradas).
 
 ## 11. Cómo está implementado en este proyecto
 
-| Pieza | Clase | Rol |
-| --- | --- | --- |
-| Tools de clima | `WeatherTools` | `get_weather_by_city`, `get_weather_by_coordinates`, `geocode_city`, `reverse_geocode` |
-| Tool de viaje | `TravelTools` | `suggest_activity` (heurística local) |
+| Pieza | Clase                                   | Rol |
+| --- |-----------------------------------------| --- |
+| Tools de clima | `WeatherTools`                          | `get_weather_by_city`, `get_weather_by_coordinates`, `geocode_city`, `reverse_geocode` |
+| Tool de viaje | `TravelTools`                           | `suggest_activity` (heurística local) |
 | Errores | `ToolErrorHandler`, `ToolErrorMessages` | Manejo central de errores |
-| Logging | `ToolLoggingListener` | Observa `ToolExecutedEvent` |
-| Agente | `WeatherForecastAgent` | `@RegisterAiService(tools = WeatherTools.class)` |
-| Agente de viaje | `TravelPlanner` | `@RegisterAiService(tools = {WeatherTools, TravelTools})` |
-| Servicio | `WeatherAgentService` | Mapea `Result` → `WeatherAgentAnswerDto` |
-| Puerto | `WeatherAssistant` | Abstracción de dominio del agente |
+| Logging | `ToolLoggingListener`                   | Observa `ToolExecutedEvent` |
+| Assistant | `WeatherForecastAssistant`              | `@RegisterAiService(tools = WeatherTools.class)` |
+| Servicio | `WeatherAssistantService`                   | Mapea `Result` → `WeatherAssistantAnswerDto` |
+| Puerto | `WeatherAssistant`                      | Abstracción de dominio del Assistant |
 
 Las tools viven en `infrastructure/tools` y envuelven los casos de uso
 (`WeatherUseCase`, `GeocodingUseCase`); los AI Services que las usan viven en
@@ -252,12 +251,12 @@ Las tools viven en `infrastructure/tools` y envuelven los casos de uso
 
 ```bash
 # Clima por ciudad (invoca get_weather_by_city)
-curl -s -X POST http://localhost:8080/weather/agent \
+curl -s -X POST http://localhost:8080/weather/assistant \
   -H "Content-Type: application/json" \
   -d '{"question":"¿Qué tiempo hace en Lima?"}'
 
 # Con opciones (sesión, días, ciudad)
-curl -s -X POST http://localhost:8080/weather/agent \
+curl -s -X POST http://localhost:8080/weather/assistant \
   -H "Content-Type: application/json" \
   -d '{"question":"¿Qué tiempo hará en Cusco?","sessionId":"user-42","days":3,"city":"Cusco"}'
 ```
@@ -297,7 +296,7 @@ trabajo real y le entrega el resultado; el vendedor solo lo explica al cliente.
 - **Function calling:** capacidad del modelo de pedir ejecutar tools.
 - **`@Tool` / `@P`:** anotaciones que describen la tool y sus parámetros.
 - **ToolBox:** anotación de método para adjuntar tools.
-- **AI Service:** interfaz que Quarkus implementa como agente con LLM.
+- **AI Service:** interfaz que Quarkus implementa como Assistant con LLM.
 - **`Result<T>`:** envoltorio con la respuesta y metadatos (tools, tokens...).
 - **`@MemoryId`:** identificador que aísla la memoria de chat por conversación.
 

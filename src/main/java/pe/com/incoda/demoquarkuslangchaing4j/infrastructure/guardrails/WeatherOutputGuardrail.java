@@ -9,7 +9,7 @@ import dev.langchain4j.guardrail.OutputGuardrailResult;
 import jakarta.enterprise.context.ApplicationScoped;
 
 /**
- * Guardrail de salida del agente meteorológico. Comprueba que la respuesta no
+ * Guardrail de salida del asistente meteorológico. Comprueba que la respuesta no
  * esté vacía y que incluya la atribución obligatoria de Open-Meteo. Si falla,
  * pide al modelo que reintente con {@code retry}.
  */

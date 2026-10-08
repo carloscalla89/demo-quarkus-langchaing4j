@@ -6,7 +6,7 @@ import java.util.List;
 import pe.com.incoda.demoquarkuslangchaing4j.domain.model.WeatherToolResult;
 
 /**
- * Contrato de salida estructurado del agente meteorológico. Combina la respuesta
+ * Contrato de salida estructurado del asistente meteorológico. Combina la respuesta
  * en lenguaje natural del modelo con los datos obtenidos por las tools.
  *
  * @param answer      respuesta en lenguaje natural del modelo
@@ -19,7 +19,7 @@ import pe.com.incoda.demoquarkuslangchaing4j.domain.model.WeatherToolResult;
  * @param observedAt  instante de observación del dato meteorológico
  * @param generatedAt instante en que se generó la respuesta
  */
-public record WeatherAgentAnswerDto(
+public record WeatherAssistantAnswerDto(
         String answer,
         String city,
         String timezone,
@@ -39,12 +39,12 @@ public record WeatherAgentAnswerDto(
      * @param result    resultado de la tool meteorológica, o {@code null}
      * @return el DTO estructurado
      */
-    public static WeatherAgentAnswerDto from(String answer, List<String> toolsUsed, WeatherToolResult result) {
+    public static WeatherAssistantAnswerDto from(String answer, List<String> toolsUsed, WeatherToolResult result) {
         if (result == null) {
-            return new WeatherAgentAnswerDto(
+            return new WeatherAssistantAnswerDto(
                     answer, null, null, null, null, List.of(), toolsUsed, null, LocalDateTime.now().toString());
         }
-        return new WeatherAgentAnswerDto(
+        return new WeatherAssistantAnswerDto(
                 answer,
                 result.location(),
                 result.timezone(),

@@ -10,7 +10,7 @@ import jakarta.inject.Inject;
 import dev.langchain4j.service.Result;
 import dev.langchain4j.service.tool.ToolExecution;
 
-import pe.com.incoda.demoquarkuslangchaing4j.domain.dto.WeatherAgentAnswerDto;
+import pe.com.incoda.demoquarkuslangchaing4j.domain.dto.WeatherAssistantAnswerDto;
 import pe.com.incoda.demoquarkuslangchaing4j.domain.dto.WeatherQuestionDto;
 import pe.com.incoda.demoquarkuslangchaing4j.domain.model.WeatherToolResult;
 import pe.com.incoda.demoquarkuslangchaing4j.domain.service.weather.WeatherAssistant;
@@ -18,7 +18,7 @@ import pe.com.incoda.demoquarkuslangchaing4j.domain.service.weather.WeatherAssis
 /**
  * Servicio de aplicación que envuelve el asistente meteorológico (puerto de
  * dominio {@link WeatherAssistant}) y traduce su {@code Result} a una respuesta
- * REST estructurada ({@link WeatherAgentAnswerDto}).
+ * REST estructurada ({@link WeatherAssistantAnswerDto}).
  */
 @ApplicationScoped
 public class WeatherAssistantService {
@@ -32,12 +32,12 @@ public class WeatherAssistantService {
     }
 
     /**
-     * Envía la pregunta al agente meteorológico y estructura la respuesta.
+     * Envía la pregunta al asistente meteorológico y estructura la respuesta.
      *
      * @param request pregunta y opciones del usuario
      * @return respuesta estructurada con el texto del modelo y los datos de las tools
      */
-    public WeatherAgentAnswerDto ask(WeatherQuestionDto request) {
+    public WeatherAssistantAnswerDto ask(WeatherQuestionDto request) {
         String memoryId = (request.sessionId() == null || request.sessionId().isBlank())
                 ? UUID.randomUUID().toString()
                 : request.sessionId();
@@ -56,7 +56,7 @@ public class WeatherAssistantService {
                 .reduce((first, second) -> second)
                 .orElse(null);
 
-        return WeatherAgentAnswerDto.from(result.content(), toolsUsed, toolResult);
+        return WeatherAssistantAnswerDto.from(result.content(), toolsUsed, toolResult);
     }
 
     /**
