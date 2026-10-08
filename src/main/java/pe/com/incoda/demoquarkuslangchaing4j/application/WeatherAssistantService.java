@@ -21,13 +21,14 @@ import pe.com.incoda.demoquarkuslangchaing4j.domain.service.weather.WeatherAssis
  * REST estructurada ({@link WeatherAgentAnswerDto}).
  */
 @ApplicationScoped
-public class WeatherAgentService {
+public class WeatherAssistantService {
 
-    private final WeatherAssistant agent;
+    private final WeatherAssistant weatherAssistant;
 
     @Inject
-    public WeatherAgentService(WeatherAssistant agent) {
-        this.agent = agent;
+    public WeatherAssistantService(WeatherAssistant weatherAssistant) {
+
+        this.weatherAssistant = weatherAssistant;
     }
 
     /**
@@ -41,7 +42,7 @@ public class WeatherAgentService {
                 ? UUID.randomUUID().toString()
                 : request.sessionId();
 
-        Result<String> result = agent.ask(memoryId, buildUserMessage(request));
+        Result<String> result = weatherAssistant.ask(memoryId, buildUserMessage(request));
 
         List<String> toolsUsed = result.toolExecutions().stream()
                 .map(execution -> execution.request().name())

@@ -10,7 +10,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
-import pe.com.incoda.demoquarkuslangchaing4j.application.WeatherAgentService;
+import pe.com.incoda.demoquarkuslangchaing4j.application.WeatherAssistantService;
 import pe.com.incoda.demoquarkuslangchaing4j.domain.dto.WeatherAnswerDto;
 import pe.com.incoda.demoquarkuslangchaing4j.domain.dto.WeatherQuestionDto;
 
@@ -21,15 +21,15 @@ import pe.com.incoda.demoquarkuslangchaing4j.domain.dto.WeatherQuestionDto;
 @Path("/weather/agent")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
-public class WeatherAgentResource {
+public class WeatherAssistantResource {
 
     private static final int MAX_QUESTION_LENGTH = 500;
     private static final Set<String> SUPPORTED_LANGUAGES = Set.of("es", "en");
 
-    private final WeatherAgentService service;
+    private final WeatherAssistantService service;
 
     @Inject
-    public WeatherAgentResource(WeatherAgentService service) {
+    public WeatherAssistantResource(WeatherAssistantService service) {
         this.service = service;
     }
 
