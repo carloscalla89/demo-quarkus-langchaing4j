@@ -1,20 +1,21 @@
 package pe.com.incoda.demoquarkuslangchaing4j.domain.service.weather;
 
-import dev.langchain4j.service.Result;
+import pe.com.incoda.demoquarkuslangchaing4j.domain.model.AssistantAnswer;
 
 /**
- * Puerto de dominio para el asistente meteorológico. La capa de aplicación
- * depende de esta abstracción y no del AI Service concreto, que vive en
+ * Puerto de dominio para el asistente meteorológico agentic. La capa de
+ * aplicación depende de esta abstracción y no del workflow concreto, que vive en
  * infraestructura.
  */
 public interface WeatherAssistant {
 
     /**
-     * Responde una consulta en lenguaje natural sobre el clima.
+     * Atiende una consulta en lenguaje natural sobre clima, geocodificación o
+     * planificación de viajes.
      *
-     * @param memoryId identificador de memoria de chat (aísla conversaciones)
-     * @param question pregunta del usuario
-     * @return resultado con la respuesta y los metadatos de la ejecución (tools usadas, tokens, etc.)
+     * @param sessionId identificador de sesión (aisla la memoria de chat)
+     * @param question  pregunta del usuario en lenguaje natural
+     * @return la respuesta, la intención detectada y los agentes usados
      */
-    Result<String> ask(String memoryId, String question);
+    AssistantAnswer ask(String sessionId, String question);
 }
