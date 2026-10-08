@@ -15,10 +15,10 @@ import pe.com.incoda.demoquarkuslangchaing4j.domain.dto.WeatherAnswerDto;
 import pe.com.incoda.demoquarkuslangchaing4j.domain.dto.WeatherQuestionDto;
 
 /**
- * Adaptador de entrada (infrastructure.input.rest) que expone el agente
+ * Adaptador de entrada (infrastructure.input.rest) que expone el asistente
  * meteorológico por REST. Se comunica solo con tipos de domain.dto.
  */
-@Path("/weather/agent")
+@Path("/weather/assistant")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class WeatherAssistantResource {
@@ -34,10 +34,10 @@ public class WeatherAssistantResource {
     }
 
     /**
-     * Pregunta al agente meteorológico.
+     * Pregunta al asistente meteorológico.
      *
      * @param request pregunta y opciones del usuario
-     * @return 200 con {@code WeatherAgentAnswerDto}; 400 si la entrada es inválida
+     * @return 200 con {@code WeatherAssistantAnswerDto}; 400 si la entrada es inválida
      */
     @POST
     public Response ask(WeatherQuestionDto request) {
