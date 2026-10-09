@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Quarkus 3.33.3.2 / Java 21 demo that combines Clean Architecture with Quarkus LangChain4j (Google Gemini): AI agents & tools, RAG (pgvector + easy-rag), and outbound REST clients (Nominatim geocoding, Open-Meteo weather). It runs as a **server** — there is no CLI entry point. Maven wrapper only (no system Maven needed).
+Quarkus 3.33.3.2 / Java 21 demo that combines Clean Architecture with Quarkus LangChain4j (Google Gemini): AI assistants & tools (classic AI Services **and** agentic workflows), RAG (pgvector), and outbound REST clients (Nominatim geocoding, Open-Meteo weather). It runs as a **server** — there is no CLI entry point. Maven wrapper only (no system Maven needed).
 
 ## Commands
 
@@ -19,15 +19,16 @@ Windows: `mvnw.cmd`; Unix: `./mvnw`.
 
 Root package: `pe.com.incoda.demoquarkuslangchaing4j`.
 
-- `domain/model` — pure records, no framework annotations (`GeoLocation`, `WeatherSnapshot`, `WeatherReport`, `DailyForecast`, `WeatherCode`, `WeatherToolResult`).
-- `domain/dto` — inbound REST contracts only (`GeoLocationDto`, `WeatherReportDto`, `WeatherQuestionDto`, `WeatherAnswerDto`, `WeatherAssistantAnswerDto`).
-- `domain/service` — outbound ports only (`geocoding/GeocodingService`, `weather/WeatherService`, `weather/WeatherAssistant`).
-- `application` — use cases (`GeocodingUseCase`, `WeatherUseCase`, `WeatherAssistantService`); depends only on domain.
-- `infrastructure/input/rest` — JAX-RS resources: `GET /geocoding/search`, `GET /geocoding/reverse`, `GET /weather`, `GET /weather/search`, `POST /weather/Assistant`; plus `ExceptionMapper`s for guardrail failures.
+- `domain/model` — pure records, no framework annotations (`GeoLocation`, `WeatherSnapshot`, `WeatherReport`, `DailyForecast`, `WeatherCode`, `WeatherToolResult`; plus `agentic/RequestIntent`, `agentic/TripPlan`, `agentic/AgenticAnswer`).
+- `domain/dto` — inbound REST contracts only (`GeoLocationDto`, `WeatherReportDto`, `WeatherQuestionDto`, `WeatherAnswerDto`, `WeatherAssistantAnswerDto`; plus `agentic/*`).
+- `domain/service` — outbound ports only (`geocoding/GeocodingService`, `weather/WeatherService`, `weather/WeatherAssistant`; plus `agentic/TripPlanner`, `agentic/AgenticAssistant`).
+- `application` — use cases (`GeocodingUseCase`, `WeatherUseCase`, `WeatherAssistantService`; plus `agentic/TripPlannerService`, `agentic/AgenticAssistantService`); depends only on domain.
+- `infrastructure/input/rest` — JAX-RS resources: `GET /geocoding/search`, `GET /geocoding/reverse`, `GET /weather`, `GET /weather/search`, `POST /weather/assistant`, `POST /agent/trip`, `POST /agent/assistant`; plus `ExceptionMapper`s for guardrail failures.
 - `infrastructure/output/client/{nominatim,openmeteo}` — MicroProfile REST clients + adapters implementing the domain ports.
 - `infrastructure/ai` — AI services (`WeatherForecastAssistant`, `DocumentationAssistant`). Tool-using ones live here so that `domain`/`application` never reference `@Tool` beans.
+- `infrastructure/agentic` — agentic workflows (new subsystem, coexists with the classic assistant): `common/` (`IntentRouterAgent`, `WeatherExpertAgent`, `GeocodingExpertAgent`), `trip/` (`DestinationResolverAgent`, `ForecastAgent`, `ActivityPlannerAgent`, `ItineraryComposerAgent`, `TripPlannerWorkflow`, `TripExpertAgent`), `router/` (`ExpertDispatcher`, `AgentWorkflow`), `support/` (`NoOpRetrievalAugmentor`), `adapter/` (`TripPlannerAdapter`, `AgenticAssistantAdapter`).
 - `infrastructure/tools` — `@Tool` beans (`WeatherTools`, `TravelTools`) plus `ToolErrorHandler` (global execution-error handler), `ToolErrorMessages`, `ToolLoggingListener`.
-- `infrastructure/guardrails` — input/output guardrails for the weather Assistant (`WeatherInputGuardrail`, `WeatherOutputGuardrail`).
+- `infrastructure/guardrails` — classic assistant guardrails (`WeatherInputGuardrail`, `WeatherOutputGuardrail`) and agentic ones (`AgenticInputGuardrail`, `TripOutputGuardrail`).
 - `infrastructure/rag/{ingestion,retriever}` — RAG ingestion and retrieval.
 - `infrastructure/output/persistence` — currently an empty leftover directory.
 
@@ -49,7 +50,18 @@ Rules: `domain`/`application` never import `infrastructure`; only `infrastructur
 - Errors: a global bean annotated `@DefaultToolExecutionErrorHandler` implementing `ToolExecutionErrorHandler` (`ToolErrorHandler`) for execution errors, and a static `@HandleToolArgumentError` method on the AI service interface for argument errors.
 - Return types: `String` is sent as-is; records/objects are serialized to JSON. `Result<T>` exposes `toolExecutions()`, `tokenUsage()` and `finishReason()`; `ToolExecution.resultObject()` returns the tool's actual Java object (used to build `WeatherAssistantAnswerDto`).
 - Observability: CDI event `ToolExecutedEvent` (listened by `ToolLoggingListener`); OpenTelemetry spans named `langchain4j.tools.<name>`.
-- Project pieces: `WeatherTools` (`get_weather_by_city`, `get_weather_by_coordinates`, `geocode_city` top-5, `reverse_geocode`), `TravelTools` (`suggest_activity`), `WeatherForecastAssistant`, `TravelPlanner`, `WeatherAssistantService`.
+- Project pieces: `WeatherTools` (`get_weather_by_city`, `get_weather_by_coordinates`, `geocode_city` top-5, `reverse_geocode`), `TravelTools` (`suggest_activity`, deterministic, no network), `WeatherForecastAssistant`, `WeatherAssistantService`.
+
+### Agentic workflows (Trip Planner + Intent Router)
+
+- Dependency `io.quarkiverse.langchain4j:quarkus-langchain4j-agentic` (already in `pom.xml`). Agent interfaces are auto-detected and registered as `@ApplicationScoped` CDI beans — **no** `@RegisterAiService`.
+- New subsystem coexists with the classic weather assistant; **no existing class was modified**. Endpoints: `POST /agent/trip` (E1 Trip Planner, `@SequenceAgent`) and `POST /agent/assistant` (E2 router, `@ConditionalAgent` + `@SequenceAgent`). Classic assistant stays at `POST /weather/assistant`.
+- `@Agent` (from `dev.langchain4j.agentic`) is method-level; prompt via `@UserMessage`. Workflows: `@SequenceAgent`, `@ConditionalAgent` (+ static `@ActivationCondition`). Return `ResultWithAgenticScope<String>` to read the `AgenticScope` (`readState(...)`, `agentInvocations()`).
+- Tools in agentic: a static `@ToolsSupplier` method **on the agent interface** returning tool objects; CDI beans are injected via `@CdiBean` parameters (`io.quarkiverse.langchain4j.agentic.runtime.CdiBean`, resolved by `CdiSupplierParameterResolver`). Supplier methods must be static (only `@ChatModelSupplier` may take params).
+- RAG: the CDI `RetrievalAugmentor` from `RagRetriever` applies to all AI services; agentic agents opt out with `@RetrievalAugmentorSupplier` returning `NoOpRetrievalAugmentor`.
+- ⚠️ **Guardrails are NOT processed by the agentic extension.** `AgenticInputGuardrail`/`TripOutputGuardrail` are invoked manually from the adapters (`check(...)`) and throw `InputGuardrailException`/`OutputGuardrailException` so the existing 400/502 mappers apply.
+- E2 TRIP branch uses `TripExpertAgent` (single tool-using agent) because the router only has the free-text request; `TripPlannerWorkflow` (structured `destination`/`days`/`preferences`) is E1 only.
+- Naming convention: new agentic `@Agent` classes use the `Agent` suffix; the classic weather assistant keeps the `Assistant` suffix. `domain`/`application` never import `infrastructure` — workflows are reached through the `TripPlanner`/`AgenticAssistant` ports and the adapters in `infrastructure/agentic/adapter`.
 
 ### Guardrails
 
@@ -57,14 +69,14 @@ Rules: `domain`/`application` never import `infrastructure`; only `infrastructur
 - Input failure → `InputGuardrailException` (mapped to HTTP **400**); output failure after retries → `OutputGuardrailException` (mapped to HTTP **502**). Mappers live in `infrastructure/input/rest`.
 - Retries: `quarkus.langchain4j.guardrails.max-retries` (Quarkus default 3). Input guardrails do **not** support retry/reprompt; output guardrails support `retry`/`reprompt`.
 - Project pieces: `WeatherInputGuardrail` (keyword heuristic: climate/location), `WeatherOutputGuardrail` (requires Open-Meteo attribution), applied on `WeatherForecastAssistant.ask`.
-- ⚠️ **Gotcha:** input guardrails run on the **RAG-augmented** user message, not the raw question. The easy-rag `RetrievalAugmentor` is global and augments every AI service by default, so length/domain checks can fail on short questions (e.g. HTTP 400 "question too long"). Fix: opt the Assistant out with `retrievalAugmentor = RegisterAiService.NoRetrievalAugmentorSupplier.class` (see `WeatherForecastAssistant`).
+- ⚠️ **Gotcha:** input guardrails run on the **RAG-augmented** user message, not the raw question. The `RetrievalAugmentor` produced by `RagRetriever` is global and augments every AI service by default, so length/domain checks can fail on short questions (e.g. HTTP 400 "question too long"). Fix: opt the Assistant out with `retrievalAugmentor = RegisterAiService.NoRetrievalAugmentorSupplier.class` (see `WeatherForecastAssistant`).
 
 ### RAG
 
 - Uses pgvector, a **JDBC** datasource. Dev Services auto-provisions Postgres (image overridden to `pgvector/pgvector:pg17`); in prod set `quarkus.datasource.jdbc.url` and ensure `CREATE EXTENSION vector` exists.
 - `RagIngestion` runs on every `StartupEvent`, calls `store.removeAll()` and re-ingests `rag.location` (`src/main/resources/rag`).
-- `quarkus-langchain4j-easy-rag` registers a **global** `RetrievalAugmentor` applied to all AI services. Opt out per service with `NoRetrievalAugmentorSupplier`.
-- `RagRetriever` imports the JAX-RS `jakarta.ws.rs.Produces` instead of the CDI one, so it does not register a CDI producer; retrieval is actually provided by easy-rag.
+- `RagRetriever` (`@Produces`) registers a **global** CDI `RetrievalAugmentor` (and `ContentRetriever`) applied to all AI services. Classic AI services opt out with `RegisterAiService.NoRetrievalAugmentorSupplier`; agentic agents with `@RetrievalAugmentorSupplier` + `NoOpRetrievalAugmentor`.
+- `quarkus-langchain4j-easy-rag` is **not** in the `pom.xml`; retrieval is wired manually by `RagRetriever`.
 
 ## External services
 
@@ -79,6 +91,8 @@ Didactic docs (Spanish) live in `docs/`:
 - `docs/quarkus-rag.md` — embeddings, indexing, retrieval and pgvector.
 - `docs/quarkus-function-call-and-tools.md` — function calling and tools.
 - `docs/quarkus-guardrails.md` — guardrails, including the RAG-augmentation gotcha.
+- `docs/quarkus-sequence-agent.md` — conceptos de `@Agent` y `outputKey` (AgenticScope).
+- `docs/quarkus-conditionalAgent-sequenceAgent.md` — `@ConditionalAgent` vs `@SequenceAgent` y cuándo usar cada uno.
 
 ## Conventions / gotchas
 
